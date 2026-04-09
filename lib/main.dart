@@ -3,6 +3,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ironkey/app_theme.dart';
+import 'package:ironkey/password_generator.dart';
+import 'package:ironkey/pin_password_generator.dart';
+import 'package:ironkey/standard_password_generator.dart';
 
 void main() {
   runApp(const IronKeyApp());
@@ -16,7 +19,7 @@ class IronKeyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
       home: const IronKeyScreen(),
     );
   }
@@ -30,23 +33,23 @@ class IronKeyScreen extends StatefulWidget {
 
 class _IronKeyScreenState extends State<IronKeyScreen> {
   final TextEditingController _passwordController = TextEditingController();
+
+  PasswordType passwordSelectedType = PasswordType.pin;
   
-  bool isEditable = true;
+  
+  bool isEditable = false;
   int maxCharacters = 12;
   bool isPin = false;
   void generatePassword() {
-    const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const lower = "abcdefghijklmnopqrstuvwxyz";
-    const numbers = "0123456789";
-    const symbols = "!@#\$%&*";
-    final chars = upper + lower + numbers + symbols;
-    final random = Random();
-    setState(() {
-      _passwordController.text = List.generate(
-        maxCharacters,
-        (_) => chars[random.nextInt(chars.length)],
-      ).join();
-    });
+    late final PasswordGenerator generator;
+    switch(passwordSelectedType){
+      case PasswordType.pin:
+      generator=PinPasswordGenerator();
+      break;
+      case PasswordType.standard:
+      generator =StandardPasswordGenerator();
+      break;
+    }
   }
 
   void copyPassword(String password) {
@@ -74,6 +77,7 @@ class _IronKeyScreenState extends State<IronKeyScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -123,7 +127,57 @@ class _IronKeyScreenState extends State<IronKeyScreen> {
                             : null,
                       ),
                     ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text("Tipo de senha")),
+                    Row(
+                      children: [
+                        Expanded(child: 
+                        RadioListTile(
+                          value: PasswordType.pin,
+                          groupValue: passwordSelectedType,
+                          title: Text("Pin"),
+                          onChanged: (value){
+                            setState(() {
+                             passwordSelectedType=value!;
+                            });
+                          }
+                          )
+                        ),
+                        Expanded(child: 
+                          RadioListTile(
+                            value: PasswordType.standard, 
+                            groupValue: passwordSelectedType,
+                            title: Text("Senha Padrão"),
+                            onChanged: (value){
+                              setState(() {
+                                passwordSelectedType=value!;
+                              });
+                            }
+                          )
+                        )
+
+                      ],
+                    ),
+                    Divider(
+                      color: colorScheme.outline,
+
+                    ),
+                    Row(
+                      children: [
+                        Icon(isEditable ? Icons.lock_open : Icons.lock),
+                        SizedBox(width: 8),
+                        Expanded(child: Text("Permitir editar a senha?")),
+                        Switch(value: isEditable, onChanged: (value){
+                          setState(() {
+                            isEditable = value;
+                          });
+                        })
+                      ],
+                    ),
+                    Divider(color: colorScheme.outline),
                     const SizedBox(height: 20),
+                    if(isEditable)Text("Senha Customizada"),
                   ],
                 ),
               ),
@@ -144,3 +198,5 @@ class _IronKeyScreenState extends State<IronKeyScreen> {
     );
   }
 }
+
+enum PasswordType {pin, standard}
